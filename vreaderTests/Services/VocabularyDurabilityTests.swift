@@ -28,7 +28,7 @@ final class VocabularyDurabilityTests: XCTestCase {
         let url = try temporaryStore()
         defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
         let fingerprint = DocumentFingerprint(contentSHA256: String(repeating: "a", count: 64), fileByteCount: 100, format: .txt)
-        let locator = Locator(bookFingerprint: fingerprint, charOffsetUTF16: 12, textQuote: "original")
+        let locator = try XCTUnwrap(Locator.validated(bookFingerprint: fingerprint, charOffsetUTF16: 12, textQuote: "original"))
         do {
             let old = try ModelContainer(for: Schema(SchemaV10.models), configurations: [ModelConfiguration(url: url)])
             let context = ModelContext(old)
