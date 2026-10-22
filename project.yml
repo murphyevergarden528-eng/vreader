@@ -18,6 +18,9 @@ settings:
 # ReadiumStreamer (parsing/opening) + ReadiumNavigator (rendering) are linked;
 # ReadiumLCP and the GCDWebServer adapter are intentionally NOT linked.
 packages:
+  FSRS:
+    url: https://github.com/open-spaced-repetition/swift-fsrs
+    revision: "4fbaf20184d62f82a9f44f343337c61a2c5483e9"
   Readium:
     url: https://github.com/readium/swift-toolkit
     exactVersion: "3.9.0"
@@ -94,6 +97,8 @@ targets:
       # AssetRetriever / PublicationOpener / DefaultPublicationParser (opening);
       # ReadiumNavigator supplies EPUBNavigatorViewController (rendering, used
       # from WI-5). No GCDWebServer adapter, no ReadiumLCP.
+      - package: FSRS
+        product: FSRS
       - package: Readium
         product: ReadiumShared
       - package: Readium
