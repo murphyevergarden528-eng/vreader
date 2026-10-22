@@ -53,9 +53,10 @@ jobs:
           RESULT=0
           for TARGET in "${TARGETS[@]}"; do
             LABEL=${TARGET//\//_}
-            if ! bash scripts/run-tests.sh "$TARGET" | tee "evidence/tests-${LABEL}.log"; then
+            if ! bash scripts/run-tests.sh "$TARGET" > "evidence/tests-${LABEL}.log" 2>&1; then
               RESULT=1
             fi
+            cat "evidence/tests-${LABEL}.log"
           done
           exit "$RESULT"
       - name: Build unsigned device app
