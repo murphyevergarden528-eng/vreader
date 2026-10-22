@@ -48,7 +48,7 @@ jobs:
           brew list xcodegen >/dev/null 2>&1 || brew install xcodegen
           xcodegen generate
       - name: Boot test simulator
-        timeout-minutes: 8
+        timeout-minutes: 15
         run: |
           DEVICE=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(x["udid"] for xs in d["devices"].values() for x in xs if "iPad" in x["name"]))')
           xcrun simctl boot "$DEVICE" || true
