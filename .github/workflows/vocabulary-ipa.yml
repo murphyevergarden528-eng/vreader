@@ -27,6 +27,10 @@ jobs:
           git rev-parse HEAD > evidence/source-sha.txt
           xcodebuild -version | tee evidence/xcode.txt
           xcrun --sdk iphoneos --show-sdk-version >> evidence/xcode.txt
+      - name: Select focused test sources
+        env:
+          TEST_TARGETS: ${{ inputs.test_targets }}
+        run: python3 .github/scripts/select-test-sources.py
       - name: Generate Xcode project
         run: |
           brew list xcodegen >/dev/null 2>&1 || brew install xcodegen
