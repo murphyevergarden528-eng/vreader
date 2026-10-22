@@ -30,3 +30,6 @@ M2 closed after inspecting extraction and missing/truncated/full/emoji regressio
 
 ## Evidence boundary
 This is source review, not a build or UI pass. Swift compilation, disk migration, unit tests and actual reader/iPad UI remain mandatory cloud checks. The user explicitly allowed tests-first implementation in parallel with cloud execution on 2026-10-23.
+
+## Targeted cloud compiler repair review
+After run 39817216411, the source/review/card map-sort chains were split into explicitly typed arrays and separate sorting/loops to avoid two Swift type-inference timeouts. The independent auditor confirmed unchanged sorting keys, conversion/error order and transaction boundaries. Actual compilation remains a cloud gate.

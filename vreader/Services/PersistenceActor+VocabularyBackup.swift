@@ -10,12 +10,18 @@ extension PersistenceActor {
         let byEntry = Dictionary(grouping: events, by: \.entryID)
         let knownIDs = Set(entries.map(\.id))
         guard events.allSatisfy({ knownIDs.contains($0.entryID) }) else { throw VocabularyError.invalidState }
-        let cards = try entries.map { entry in
-            let reviews = try (byEntry[entry.id] ?? []).map { try VocabularyBackupReview($0) }
-                .sorted { $0.revisionAfter == $1.revisionAfter
-                    ? $0.id.uuidString < $1.id.uuidString : $0.revisionAfter < $1.revisionAfter }
-            return VocabularyBackupCard(record: try vocabularyRecord(entry, in: context), reviews: reviews)
-        }.sorted { $0.record.id.uuidString < $1.record.id.uuidString }
+        var cards: [VocabularyBackupCard] = []
+        for entry in entries {
+            var reviews: [VocabularyBackupReview] = []
+            for event in byEntry[entry.id] ?? [] { reviews.append(try VocabularyBackupReview(event)) }
+            reviews.sort { left, right in
+                if left.revisionAfter == right.revisionAfter { return left.id.uuidString < right.id.uuidString }
+                return left.revisionAfter < right.revisionAfter
+            }
+            let record = try vocabularyRecord(entry, in: context)
+            cards.append(VocabularyBackupCard(record: record, reviews: reviews))
+        }
+        cards.sort { $0.record.id.uuidString < $1.record.id.uuidString }
         let backup = VocabularyBackup(version: 1, algorithm: .current, cards: cards)
         try backup.validate()
         return try VocabularyCoding.encode(backup)

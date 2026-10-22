@@ -11,6 +11,7 @@ final class VocabularyFlowUITests: XCTestCase {
         entry.tap()
         XCTAssertTrue(app.staticTexts["vocabularyEmptyState"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["vocabularyImportButton"].exists)
+        capture("生词本空状态", in: app)
     }
 
     func testVocabularyLargeTypeAcrossOrientations() {
@@ -24,6 +25,7 @@ final class VocabularyFlowUITests: XCTestCase {
             XCTAssertTrue(app.staticTexts["vocabularyEmptyState"].waitForExistence(timeout: 5))
             XCTAssertTrue(app.buttons["vocabularyImportButton"].isHittable)
             XCTAssertTrue(app.buttons["vocabularyExportButton"].isHittable)
+            capture("生词本大字体-\(orientation.rawValue)", in: app)
             app.buttons["完成"].firstMatch.tap()
             XCTAssertTrue(entry.waitForHittable(timeout: 5))
         }
@@ -60,7 +62,16 @@ final class VocabularyFlowUITests: XCTestCase {
         XCTAssertTrue(answer.waitForExistence(timeout: 5))
         XCTAssertFalse(app.buttons["vocabularyRatingGood"].exists)
         answer.tap()
+        capture("复习显示答案", in: app)
         app.buttons["vocabularyRatingGood"].tap()
         XCTAssertTrue(app.staticTexts["vocabularyReviewComplete"].waitForExistence(timeout: 5))
+        capture("复习完成", in: app)
+    }
+
+    private func capture(_ name: String, in app: XCUIApplication) {
+        let attachment = XCTAttachment(screenshot: app.screenshot())
+        attachment.name = name
+        attachment.lifetime = .keepAlways
+        add(attachment)
     }
 }

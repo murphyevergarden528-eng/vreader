@@ -109,9 +109,12 @@ extension PersistenceActor {
     func vocabularyRecord(_ entry: VocabularyEntry, in context: ModelContext) throws -> VocabularyRecord {
         let card = try VocabularyScheduler.card(from: entry.cardData)
         guard card.due == entry.dueAt else { throw VocabularyError.invalidState }
-        let sources = try vocabularyOccurrences(for: entry.id, in: context).map(\.snapshot)
-            .sorted { $0.createdAt == $1.createdAt
-                ? $0.id.uuidString < $1.id.uuidString : $0.createdAt < $1.createdAt }
+        let occurrences = try vocabularyOccurrences(for: entry.id, in: context)
+        var sources: [VocabularySource] = occurrences.map { $0.snapshot }
+        sources.sort { left, right in
+            if left.createdAt == right.createdAt { return left.id.uuidString < right.id.uuidString }
+            return left.createdAt < right.createdAt
+        }
         return VocabularyRecord(id: entry.id, term: entry.term, normalizedTerm: entry.normalizedTerm,
             definition: entry.definition, sources: sources, cardData: entry.cardData,
             dueAt: card.due, isNew: card.state == .new, revision: entry.revision,

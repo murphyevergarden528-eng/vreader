@@ -50,7 +50,7 @@ jobs:
       - name: Boot test simulator
         timeout-minutes: 8
         run: |
-          DEVICE=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(x["udid"] for xs in d["devices"].values() for x in xs if "iPhone" in x["name"]))')
+          DEVICE=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(x["udid"] for xs in d["devices"].values() for x in xs if "iPad" in x["name"]))')
           xcrun simctl boot "$DEVICE" || true
           xcrun simctl bootstatus "$DEVICE" -b
           echo "TEST_UDID=$DEVICE" >> "$GITHUB_ENV"
@@ -61,11 +61,23 @@ jobs:
           TIMEOUT_SECS: '5400'
         run: |
           set -euo pipefail
+          touch evidence/test-start
           read -r -a TARGETS <<< "$TEST_TARGETS"
-          RESULT=0
+          UNIT_TARGETS=""
+          UI_TARGETS=""
           for TARGET in "${TARGETS[@]}"; do
-            LABEL=${TARGET//\//_}
-            bash scripts/run-tests.sh "$TARGET" > "evidence/tests-${LABEL}.log" 2>&1 &
+            case "$TARGET" in
+              vreaderUITests*) UI_TARGETS="$UI_TARGETS $TARGET" ;;
+              vreaderTests*) UNIT_TARGETS="$UNIT_TARGETS $TARGET" ;;
+              *) echo "Unsupported test target: $TARGET"; exit 1 ;;
+            esac
+          done
+          for PHASE in unit ui; do
+            if [ "$PHASE" = unit ]; then SELECTION="$UNIT_TARGETS"; else SELECTION="$UI_TARGETS"; fi
+            [ -n "$SELECTION" ] || continue
+            read -r -a SELECTED <<< "$SELECTION"
+            echo "Starting $PHASE tests: $SELECTION"
+            bash scripts/run-tests.sh "${SELECTED[@]}" > "evidence/tests-${PHASE}.log" 2>&1 &
             TEST_PID=$!
             while kill -0 "$TEST_PID" 2>/dev/null; do
               for LOG in "${TMPDIR}"/run-tests.*; do
@@ -74,11 +86,11 @@ jobs:
               sleep 30
             done
             if ! wait "$TEST_PID"; then
-              RESULT=1
+              cat "evidence/tests-${PHASE}.log"
+              exit 1
             fi
-            cat "evidence/tests-${LABEL}.log"
+            cat "evidence/tests-${PHASE}.log"
           done
-          exit "$RESULT"
       - name: Build unsigned device app
         if: ${{ inputs.package_ipa }}
         run: |
@@ -105,6 +117,14 @@ jobs:
           for LOG in "${TMPDIR}"/run-tests.*; do
             [ ! -f "$LOG" ] || cp "$LOG" evidence/
           done
+          if [ -f evidence/test-start ] && [ -d "$HOME/Library/Developer/Xcode/DerivedData" ]; then
+            find "$HOME/Library/Developer/Xcode/DerivedData" -type d -name '*.xcresult' -prune -newer evidence/test-start -print0 |
+            while IFS= read -r -d '' RESULT; do
+              OUTPUT="evidence/ui-attachments/$(basename "$RESULT" .xcresult)"
+              mkdir -p "$OUTPUT"
+              xcrun xcresulttool export attachments --path "$RESULT" --output-path "$OUTPUT" > "$OUTPUT/export.log" 2>&1 || true
+            done
+          fi
       - name: Save compiler outputs
         if: ${{ !cancelled() && steps.compiler-cache.outputs.cache-hit != 'true' }}
         uses: actions/cache/save@v4
