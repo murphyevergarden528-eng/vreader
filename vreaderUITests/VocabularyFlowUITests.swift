@@ -39,10 +39,10 @@ final class VocabularyFlowUITests: XCTestCase {
         let ready = NSPredicate(format: "value CONTAINS 'restoredOffset:' AND NOT value CONTAINS 'restoredOffset:none'")
         XCTAssertEqual(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: ready, object: text)], timeout: 15), .completed)
         text.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.25)).press(forDuration: 1.5)
-        let collect = app.buttons["selectionPopoverVocabulary"]
+        let collect = app.buttons["加入生词本"]
         XCTAssertTrue(collect.waitForExistence(timeout: 5))
         collect.tap()
-        let term = app.textFields["vocabularyTermField"]
+        let term = app.descendants(matching: .any).matching(identifier: "vocabularyTermField").firstMatch
         XCTAssertTrue(term.waitForExistence(timeout: 5))
         XCTAssertFalse((term.value as? String ?? "").isEmpty)
         let definition = app.textViews["vocabularyDefinitionField"]
