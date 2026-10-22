@@ -18,7 +18,7 @@ concurrency:
 jobs:
   validate:
     runs-on: macos-26-intel
-    timeout-minutes: 75
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
       - name: Select Swift 6.2 compatible Xcode
@@ -49,17 +49,25 @@ jobs:
           xcrun simctl bootstatus "$DEVICE" -b
           echo "TEST_UDID=$DEVICE" >> "$GITHUB_ENV"
       - name: Run requested tests with project watchdog
-        timeout-minutes: 55
+        timeout-minutes: 120
         env:
           TEST_TARGETS: ${{ inputs.test_targets }}
-          TIMEOUT_SECS: '3000'
+          TIMEOUT_SECS: '5400'
         run: |
           set -euo pipefail
           read -r -a TARGETS <<< "$TEST_TARGETS"
           RESULT=0
           for TARGET in "${TARGETS[@]}"; do
             LABEL=${TARGET//\//_}
-            if ! bash scripts/run-tests.sh "$TARGET" > "evidence/tests-${LABEL}.log" 2>&1; then
+            bash scripts/run-tests.sh "$TARGET" > "evidence/tests-${LABEL}.log" 2>&1 &
+            TEST_PID=$!
+            while kill -0 "$TEST_PID" 2>/dev/null; do
+              for LOG in "${TMPDIR}"/run-tests.*; do
+                [ ! -f "$LOG" ] || tail -n 3 "$LOG"
+              done
+              sleep 30
+            done
+            if ! wait "$TEST_PID"; then
               RESULT=1
             fi
             cat "evidence/tests-${LABEL}.log"

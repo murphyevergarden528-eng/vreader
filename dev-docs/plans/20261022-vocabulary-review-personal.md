@@ -47,3 +47,9 @@ Approved by the user 2026-10-22. UI may be designed for this personal fork using
 - ARM64 runner run 39751000289 never acquired a runner and ended after 15 minutes; this is not feature RED evidence.
 - Switched to the standard macos-15-intel runner (commit 9757dae); run 39754332012 has started and reached simulator boot.
 - Feature production code and IPA remain pending actual test execution; no passing claim.
+
+## Execution ruling 2026-10-23
+The user accepted writing tests first and implementing in parallel with cloud test execution. Full cloud RED is no longer a prerequisite for local production edits. This overrides the previous strict execution ordering of repository rule 47 / TDD for this personal fork. Tests, independent audit and UI acceptance remain mandatory before delivery.
+- Xcode 26.3 failed in upstream Readium CompositeFormatSniffer; Xcode 26.6 passed that dependency compilation.
+- Run 39799005016 was cancelled during application compilation, with no compiler errors or test-completion marker. This is neither a passing build nor feature RED. Cancellation was premature.
+- Proceed with the previously audited scope and existing tests; cloud results will be reported honestly.
