@@ -1,4 +1,5 @@
 import XCTest
+import UIKit
 
 /// CI uses a controlled TXT fixture because the local real-book folder is gitignored.
 @MainActor
@@ -10,6 +11,22 @@ final class VocabularyFlowUITests: XCTestCase {
         entry.tap()
         XCTAssertTrue(app.staticTexts["vocabularyEmptyState"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["vocabularyImportButton"].exists)
+    }
+
+    func testVocabularyLargeTypeAcrossOrientations() {
+        defer { XCUIDevice.shared.orientation = .portrait }
+        let app = launchApp(seed: .empty, dynamicType: .ax5, resetPreferences: true)
+        for orientation in [UIDeviceOrientation.portrait, .landscapeLeft] {
+            XCUIDevice.shared.orientation = orientation
+            let entry = app.buttons["vocabularyToolbarButton"]
+            XCTAssertTrue(entry.waitForHittable(timeout: 10))
+            entry.tap()
+            XCTAssertTrue(app.staticTexts["vocabularyEmptyState"].waitForExistence(timeout: 5))
+            XCTAssertTrue(app.buttons["vocabularyImportButton"].isHittable)
+            XCTAssertTrue(app.buttons["vocabularyExportButton"].isHittable)
+            app.buttons["完成"].firstMatch.tap()
+            XCTAssertTrue(entry.waitForHittable(timeout: 5))
+        }
     }
 
     func testCollectionThroughRealTXTSelectionThenOfflineReview() {

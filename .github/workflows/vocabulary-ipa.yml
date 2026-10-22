@@ -12,9 +12,6 @@ on:
         default: false
 permissions:
   contents: read
-concurrency:
-  group: vocabulary-${{ github.ref }}-${{ inputs.test_targets }}
-  cancel-in-progress: false
 jobs:
   validate:
     runs-on: macos-26-intel
