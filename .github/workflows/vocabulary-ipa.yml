@@ -21,6 +21,12 @@ jobs:
     timeout-minutes: 75
     steps:
       - uses: actions/checkout@v4
+      - name: Select Swift 6.2 compatible Xcode
+        run: |
+          XCODE=$(python3 -c 'import glob,re; p=[x for x in glob.glob("/Applications/Xcode_26*.app") if "beta" not in x.lower() and "rc" not in x.lower()]; print(max(p,key=lambda x: [int(n) for n in re.findall(r"\d+",x)]))')
+          sudo xcode-select -s "$XCODE/Contents/Developer"
+          echo "DEVELOPER_DIR=$XCODE/Contents/Developer" >> "$GITHUB_ENV"
+          xcodebuild -version
       - name: Record source and toolchain
         run: |
           mkdir -p evidence

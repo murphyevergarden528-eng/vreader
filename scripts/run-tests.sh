@@ -49,7 +49,7 @@ LOG="$(mktemp -t run-tests.XXXXXX)"
 trap 'rm -f "$LOG.timedout"' EXIT
 echo "[run-tests] targets=${ONLY_ARGS[*]} udid=$UDID timeout=${TIMEOUT_SECS}s log=$LOG"
 
-DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild test \
+DEVELOPER_DIR="${DEVELOPER_DIR:-$(xcode-select -p)}" xcodebuild test \
   -project "$PROJECT" -scheme "$SCHEME" \
   -destination "platform=iOS Simulator,id=$UDID" \
   "${ONLY_ARGS[@]}" >"$LOG" 2>&1 &
