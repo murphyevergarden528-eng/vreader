@@ -1002,7 +1002,9 @@ struct TXTReaderContainerView: View {
                 bilingualSegmentMap: bilingualSegmentMap,
                 // Bug #239 — see readerContent: gate side-tap → page-turn
                 // dispatch on the current paged/scroll layout.
-                layout: settingsStore?.epubLayout
+                layout: settingsStore?.epubLayout,
+                vocabularySourceOffset: chapters.indices.contains(viewModel.currentChapterIdx)
+                    ? max(0, chapters[viewModel.currentChapterIdx].globalStartUTF16) : 0
             )
         }
         .ignoresSafeArea(edges: .bottom)

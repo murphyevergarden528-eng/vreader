@@ -72,7 +72,11 @@ extension TXTReaderContainerView {
                         config: settingsStore?.txtViewConfig ?? TXTViewConfig(),
                         currentPage: uiState.pagedCurrentPage,
                         pageTurnAnimation: settingsStore?.pageTurnAnimation ?? .none,
-                        layout: settingsStore?.epubLayout
+                        layout: settingsStore?.epubLayout,
+                        rawVocabularyText: text,
+                        vocabularySourceOffset: viewModel.chapterIndex?.chapters
+                            .first(where: { $0.index == viewModel.currentChapterIdx }).map { max(0, $0.globalStartUTF16) } ?? 0,
+                        bilingualSegmentMap: bilingualSegmentMap
                     )
 
                     if nav.totalPages > 0 && !isChromeVisible {

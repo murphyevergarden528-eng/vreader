@@ -21,6 +21,7 @@ import UIKit
 
 /// SwiftUI wrapper for a read-only UITextView displaying plain or attributed text.
 struct TXTTextViewBridge: UIViewRepresentable {
+    @Environment(\.vocabularyReaderContext) var vocabularyReaderContext
     let text: String
     /// Optional pre-built attributed string (e.g., from Markdown rendering).
     /// When non-nil, used directly instead of building from `text` + config.
@@ -92,6 +93,9 @@ struct TXTTextViewBridge: UIViewRepresentable {
     /// — preserving the legacy chrome-toggle behavior.
     var layout: EPUBLayoutPreference?
 
+    var rawVocabularyText: String? = nil
+    var vocabularySourceOffset: Int = 0
+
     func makeUIView(context: Context) -> UITextView {
         let textView = HighlightableTextView()
         textView.isEditable = false
@@ -146,6 +150,9 @@ struct TXTTextViewBridge: UIViewRepresentable {
         // Feature #56 WI-12b: initialize the bilingual segment map on
         // first-creation; updateUIView keeps it in sync afterwards.
         context.coordinator.bilingualSegmentMap = bilingualSegmentMap
+        context.coordinator.vocabularyReaderContext = vocabularyReaderContext
+        context.coordinator.vocabularySourceText = rawVocabularyText ?? text
+        context.coordinator.vocabularySourceOffset = vocabularySourceOffset
         // Bug #239 — initialize the coordinator's layout snapshot so the
         // very first tap honors the current paged/scroll mode without
         // needing a SwiftUI update pass.
@@ -198,6 +205,9 @@ struct TXTTextViewBridge: UIViewRepresentable {
         // Feature #56 WI-12b: sync the bilingual segment map so the
         // coordinator's selection-notification helpers route through it.
         context.coordinator.bilingualSegmentMap = bilingualSegmentMap
+        context.coordinator.vocabularyReaderContext = vocabularyReaderContext
+        context.coordinator.vocabularySourceText = rawVocabularyText ?? text
+        context.coordinator.vocabularySourceOffset = vocabularySourceOffset
         // Bug #239 — keep the coordinator's layout snapshot current so a
         // user toggling Paged ↔ Scroll mid-session immediately changes the
         // tap-routing behavior on the next tap (without rebuilding the

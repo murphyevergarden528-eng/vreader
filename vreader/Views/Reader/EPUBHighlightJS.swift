@@ -110,7 +110,18 @@ extension EPUBHighlightBridge {
                     if (!text || !text.trim()) return;
                     rect = range.getBoundingClientRect();
                 }
+                var contextNode = range.commonAncestorContainer;
+                if (contextNode.nodeType === 3) contextNode = contextNode.parentElement;
+                var paragraph = startEl && startEl.closest('p,li,blockquote,h1,h2,h3,h4,h5,h6');
+                if (paragraph && paragraph.contains(range.endContainer)) contextNode = paragraph;
+                var contextText = '';
+                if (contextNode) {
+                    var copy = contextNode.cloneNode(true);
+                    copy.querySelectorAll('[data-vreader-decoration],script,style').forEach(function(n) { n.remove(); });
+                    contextText = copy.textContent.trim();
+                }
                 var msg = {
+                    context: contextText,
                     selectedText: text,
                     startPath: getXPath(range.startContainer),
                     startOffset: range.startOffset,

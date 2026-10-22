@@ -95,7 +95,11 @@ extension ReadiumEPUBHost {
             startUTF16: 0,
             endUTF16: highlight.utf16.count
         )
-        SelectionPopoverRequest.post(selection: info, requestToken: token)
+        let surrounding = VocabularySelectionContext.readiumContext(before: selection.locator.text.before,
+            highlight: highlight, after: selection.locator.text.after)
+        let snapshot = vocabularyReaderContext?.snapshot(term: highlight, context: surrounding,
+            locatorData: (try? selection.locator.jsonString())?.data(using: .utf8))
+        SelectionPopoverRequest.post(selection: info, requestToken: token, vocabularySnapshot: snapshot)
     }
 
     /// Called from the `.readerHighlightRequested` observer. Resolves the token

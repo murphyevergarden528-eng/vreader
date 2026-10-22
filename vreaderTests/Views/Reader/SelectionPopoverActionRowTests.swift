@@ -24,20 +24,21 @@ struct SelectionPopoverActionRowTests {
 
     // MARK: - Cardinality + order
 
-    @Test("Action row has exactly 4 entries")
+    @Test("Action row has exactly 5 entries")
     func actionRowCount() {
-        #expect(SelectionPopoverActionRow.allCases.count == 4)
+        #expect(SelectionPopoverActionRow.allCases.count == 5)
     }
 
     @Test("Action row order matches design bundle (Note / Translate / Ask AI / Read)")
     func actionRowOrder() {
-        #expect(SelectionPopoverActionRow.allCases == [.note, .translate, .askAI, .read])
+        #expect(SelectionPopoverActionRow.allCases == [.saveVocabulary, .note, .translate, .askAI, .read])
     }
 
     // MARK: - Mapping to dispatch action (WI-3 enum)
 
     @Test("Each row maps to its SelectionPopoverAction dispatch case")
     func dispatchActionMapping() {
+        #expect(SelectionPopoverActionRow.saveVocabulary.dispatchAction == .saveVocabulary)
         #expect(SelectionPopoverActionRow.note.dispatchAction == .note)
         #expect(SelectionPopoverActionRow.translate.dispatchAction == .translate)
         #expect(SelectionPopoverActionRow.askAI.dispatchAction == .askAI)
@@ -88,6 +89,7 @@ struct SelectionPopoverActionRowTests {
     func accessibilityIdentifiers() {
         // XCUITest + verify-cron snapshots look these up. Stable
         // contract — do not rename without updating every harness.
+        #expect(SelectionPopoverActionRow.saveVocabulary.accessibilityIdentifier == "selectionPopoverVocabulary")
         #expect(SelectionPopoverActionRow.note.accessibilityIdentifier == "selectionPopoverNote")
         #expect(SelectionPopoverActionRow.translate.accessibilityIdentifier == "selectionPopoverTranslate")
         #expect(SelectionPopoverActionRow.askAI.accessibilityIdentifier == "selectionPopoverAskAI")

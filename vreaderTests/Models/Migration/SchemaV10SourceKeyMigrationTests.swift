@@ -23,9 +23,9 @@ struct SchemaV10SourceKeyMigrationTests {
         #expect(SchemaV10.versionIdentifier == Schema.Version(10, 0, 0))
     }
 
-    @Test func migrationPlanIncludesV10AsLastWithNoStages() {
-        #expect(VReaderMigrationPlan.schemas.count == 10)
-        #expect(String(describing: VReaderMigrationPlan.schemas.last!) == String(describing: SchemaV10.self))
+    @Test func migrationPlanRetainsV10BeforeVocabularyWithNoStages() {
+        #expect(VReaderMigrationPlan.schemas.count == 11)
+        #expect(String(describing: VReaderMigrationPlan.schemas[9]) == String(describing: SchemaV10.self))
         // V9→V10 is an additive lightweight migration — no explicit stage.
         #expect(VReaderMigrationPlan.stages.isEmpty)
     }

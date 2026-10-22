@@ -20,6 +20,7 @@ import UIKit
 /// UIViewRepresentable wrapping a UITableView that renders text in chunks.
 /// Designed for large files where a single UITextView would be too slow.
 struct TXTChunkedReaderBridge: UIViewRepresentable {
+    @Environment(\.vocabularyReaderContext) var vocabularyReaderContext
     let chunks: [String]
     let config: TXTViewConfig
     /// Bug #1230 / GH #1230: Simplified↔Traditional conversion applied to the
@@ -222,6 +223,7 @@ struct TXTChunkedReaderBridge: UIViewRepresentable {
     }
 
     func makeUIView(context: Context) -> UITableView {
+        context.coordinator.vocabularyReaderContext = vocabularyReaderContext
         let tableView = UITableView(frame: .zero, style: .plain)
         tableView.register(ChunkedTextCell.self, forCellReuseIdentifier: ChunkedTextCell.reuseID)
         tableView.dataSource = context.coordinator
@@ -326,6 +328,7 @@ struct TXTChunkedReaderBridge: UIViewRepresentable {
     }
 
     func updateUIView(_ tableView: UITableView, context: Context) {
+        context.coordinator.vocabularyReaderContext = vocabularyReaderContext
         context.coordinator.delegate = delegate
         // Feature #64 WI-6: refresh tap-on-highlight inputs every update so
         // late-arriving highlights (created after the bridge was first
@@ -515,6 +518,7 @@ struct TXTChunkedReaderBridge: UIViewRepresentable {
     // MARK: - Coordinator
 
     final class Coordinator: NSObject, UITableViewDataSource, UITableViewDelegate, UIGestureRecognizerDelegate, UITextViewDelegate {
+        var vocabularyReaderContext: VocabularyReaderContext?
         var chunks: [String] = []
         var config = TXTViewConfig()
         /// Bug #1230 / GH #1230: conversion direction applied to RENDERED chunk
@@ -1153,7 +1157,10 @@ struct TXTChunkedReaderBridge: UIViewRepresentable {
                     .readerSelectionPopoverRequested,
                     from: textView,
                     range: local,
-                    chunkOffset: offset
+                    chunkOffset: offset,
+                    vocabularyReaderContext: self.vocabularyReaderContext,
+                    vocabularySourceText: self.chunks.indices.contains(idx) ? self.chunks[idx] : nil,
+                    vocabularySourceIsPartial: true
                 )
             }
         }
@@ -1209,7 +1216,10 @@ struct TXTChunkedReaderBridge: UIViewRepresentable {
                         .readerSelectionPopoverRequested,
                         from: textView,
                         range: range,
-                        chunkOffset: chunkOffset
+                        chunkOffset: chunkOffset,
+                        vocabularyReaderContext: vocabularyReaderContext,
+                        vocabularySourceText: chunks.indices.contains(chunkIndex) ? chunks[chunkIndex] : nil,
+                        vocabularySourceIsPartial: true
                     )
                 }
             }

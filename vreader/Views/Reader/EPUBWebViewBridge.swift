@@ -44,6 +44,7 @@ private final class WeakScriptMessageHandler: NSObject, WKScriptMessageHandler {
 
 /// UIViewRepresentable bridge for EPUB content rendering via WKWebView.
 struct EPUBWebViewBridge: UIViewRepresentable {
+    @Environment(\.vocabularyReaderContext) var vocabularyReaderContext
     /// URL of the XHTML file to load.
     let contentURL: URL
     /// Base directory for resolving relative resources (CSS, images).
@@ -106,7 +107,7 @@ struct EPUBWebViewBridge: UIViewRepresentable {
     /// Called when WKWebView fails to load content.
     let onLoadError: @MainActor (String) -> Void
     /// Called when the user selects text in the EPUB content.
-    var onSelectionEvent: (@MainActor (ReaderSelectionEvent) -> Void)?
+    var onSelectionEvent: (@MainActor (ReaderSelectionEvent, VocabularySelectionSnapshot?) -> Void)?
     /// Feature #56 WI-10: receives the enumerate payload posted by
     /// `EPUBBilingualJS.bilingualEnumerateJS` after a chapter loads.
     /// Optional — call sites that don't enable bilingual mode simply
@@ -339,6 +340,7 @@ struct EPUBWebViewBridge: UIViewRepresentable {
         context.coordinator.readerToken = readerToken
         #endif
         context.coordinator.onSelectionEvent = onSelectionEvent
+        context.coordinator.vocabularyReaderContext = vocabularyReaderContext
         context.coordinator.onBilingualEnumerate = onBilingualEnumerate
         context.coordinator.onPageDidFinishLoad = onPageDidFinishLoad
         context.coordinator.isPaged = isPaged
@@ -379,6 +381,7 @@ struct EPUBWebViewBridge: UIViewRepresentable {
         context.coordinator.readerToken = readerToken
         #endif
         context.coordinator.onSelectionEvent = onSelectionEvent
+        context.coordinator.vocabularyReaderContext = vocabularyReaderContext
         context.coordinator.onBilingualEnumerate = onBilingualEnumerate
         context.coordinator.onPageDidFinishLoad = onPageDidFinishLoad
         context.coordinator.isPaged = isPaged

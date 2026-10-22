@@ -94,7 +94,8 @@ extension EPUBWebViewBridge {
         var earlySettleFallbackTask: Task<Void, Never>?
         #endif
         /// Callback for text selection events.
-        var onSelectionEvent: (@MainActor (ReaderSelectionEvent) -> Void)?
+        var vocabularyReaderContext: VocabularyReaderContext?
+        var onSelectionEvent: (@MainActor (ReaderSelectionEvent, VocabularySelectionSnapshot?) -> Void)?
         /// Feature #56 WI-10: receives the `EPUBBilingualEnumeratePayload`
         /// parsed from the JS `bilingualEnumerate` channel after a chapter
         /// loads. `nil` for non-bilingual call sites; the message handler
@@ -359,8 +360,10 @@ extension EPUBWebViewBridge {
                 range: parsed.range,
                 sourceRect: parsed.sourceRect
             )
+            let snapshot = vocabularyReaderContext?.snapshot(term: parsed.selectedText,
+                context: parsed.context ?? "", locatorData: try? JSONEncoder().encode(event.anchor))
             Task { @MainActor in
-                onSelectionEvent?(event)
+                onSelectionEvent?(event, snapshot)
             }
         }
 

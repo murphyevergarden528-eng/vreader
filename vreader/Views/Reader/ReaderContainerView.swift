@@ -278,6 +278,9 @@ struct ReaderContainerView: View {
                     // shouldRecognizeSimultaneously). Do NOT add a SwiftUI
                     // overlay — it blocks scroll gestures. (bug #70)
                     engineReaderView(fingerprint: fingerprint)
+                        .environment(\.vocabularyReaderContext, VocabularyReaderContext(
+                            readerID: readerToken, bookKey: book.fingerprintKey, bookTitle: book.title
+                        ))
                 } else {
                     fingerprintErrorView
                 }
@@ -331,6 +334,7 @@ struct ReaderContainerView: View {
                     .transition(.opacity)
             }
         }
+        .modifier(ReaderVocabularyPresenter(readerID: readerToken, bookKey: book.fingerprintKey))
         .onReceive(NotificationCenter.default.publisher(for: .readerContentTapped)) { _ in
             // A content tap toggles the chrome. If the More popover is
             // open, the tap should dismiss it rather than (also)

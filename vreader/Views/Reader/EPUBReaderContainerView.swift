@@ -818,7 +818,7 @@ struct EPUBReaderContainerView: View {
             onLoadError: { error in
                 webViewError = error
             },
-            onSelectionEvent: { event in
+            onSelectionEvent: { event, snapshot in
                 // Feature #60 WI-7c5b: cache the EPUB selection under
                 // a fresh token, then post `.readerSelectionPopoverRequested`.
                 // The popover's action notification carries the token
@@ -833,7 +833,7 @@ struct EPUBReaderContainerView: View {
                     startUTF16: 0,
                     endUTF16: event.selectedText.utf16.count
                 )
-                SelectionPopoverRequest.post(selection: info, requestToken: token)
+                SelectionPopoverRequest.post(selection: info, requestToken: token, vocabularySnapshot: snapshot)
             },
             // Feature #56 WI-10: the bridge posts blocks parsed from
             // the JS `bilingualEnumerate` channel. The orchestrator

@@ -14,6 +14,9 @@ extension TXTTextViewBridge {
         let selectionCardFallback = SelectionCardFallback()
         var lastConfig: TXTViewConfig
         var lastAppliedAttrText: NSAttributedString?
+        var vocabularyReaderContext: VocabularyReaderContext?
+        var vocabularySourceText: String?
+        var vocabularySourceOffset = 0
         var lastAppliedText: String?
 
         /// Base attributed string (source without highlights). Used by timer to rebuild.
@@ -426,6 +429,9 @@ extension TXTTextViewBridge {
                     .readerSelectionPopoverRequested,
                     from: textView,
                     range: range,
+                    vocabularyReaderContext: vocabularyReaderContext,
+                    vocabularySourceText: vocabularySourceText,
+                    vocabularySourceOffset: vocabularySourceOffset,
                     bilingualSegmentMap: bilingualSegmentMap
                 )
             }
@@ -453,6 +459,9 @@ extension TXTTextViewBridge {
                     .readerSelectionPopoverRequested,
                     from: textView,
                     range: armed,
+                    vocabularyReaderContext: self.vocabularyReaderContext,
+                    vocabularySourceText: self.vocabularySourceText,
+                    vocabularySourceOffset: self.vocabularySourceOffset,
                     bilingualSegmentMap: self.bilingualSegmentMap
                 )
             }

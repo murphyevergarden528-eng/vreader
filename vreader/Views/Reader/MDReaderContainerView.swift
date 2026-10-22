@@ -420,7 +420,8 @@ struct MDReaderContainerView: View {
                     config: settingsStore?.txtViewConfig ?? TXTViewConfig(),
                     currentPage: uiState.pagedCurrentPage,
                     pageTurnAnimation: settingsStore?.pageTurnAnimation ?? .none,
-                    layout: settingsStore?.epubLayout
+                    layout: settingsStore?.epubLayout,
+                    rawVocabularyText: viewModel.renderedText
                 )
 
                 if navigator.totalPages > 0 && !isChromeVisible {
@@ -558,7 +559,8 @@ struct MDReaderContainerView: View {
                 // MD scroll mode collapses to chrome-toggle; MD paged mode
                 // (when wired) produces `.readerNextPage` /
                 // `.readerPreviousPage`.
-                layout: settingsStore?.epubLayout
+                layout: settingsStore?.epubLayout,
+                rawVocabularyText: viewModel.renderedText
             )
         }
         .ignoresSafeArea(edges: .bottom)

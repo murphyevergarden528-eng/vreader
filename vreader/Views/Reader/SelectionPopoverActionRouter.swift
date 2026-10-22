@@ -87,6 +87,13 @@ enum SelectionPopoverActionRouter {
                 userInfo: makeUserInfo(token: payload.requestToken, color: color.rawValue)
             )
             return .dispatched(.readerHighlightRequested)
+        case .saveVocabulary:
+            guard let snapshot = payload.vocabularySnapshot else {
+                return .deferredNotYetWired(.saveVocabulary)
+            }
+            let name = Notification.Name("vreader.vocabulary.collect")
+            notificationCenter.post(name: name, object: snapshot)
+            return .dispatched(name)
         case .note:
             notificationCenter.post(
                 name: .readerAnnotationRequested,

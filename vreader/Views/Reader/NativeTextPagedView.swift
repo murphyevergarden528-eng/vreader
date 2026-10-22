@@ -24,6 +24,7 @@ import UIKit
 
 /// Single-page text view for native TXT/MD paged mode.
 struct NativeTextPagedView: UIViewRepresentable {
+    @Environment(\.vocabularyReaderContext) var vocabularyReaderContext
     let navigator: NativeTextPageNavigator
     /// The full plain text (for extracting current page content).
     let fullText: String
@@ -43,8 +44,22 @@ struct NativeTextPagedView: UIViewRepresentable {
     /// router added in PR #1098 (Bug #239).
     var layout: EPUBLayoutPreference? = nil
 
+    var rawVocabularyText: String? = nil
+    var vocabularySourceOffset = 0
+    var bilingualSegmentMap = BilingualDisplaySegmentMap.identity(sourceLength: 0)
+
+    private func updateVocabulary(_ coordinator: Coordinator) {
+        coordinator.vocabularyReaderContext = vocabularyReaderContext
+        coordinator.sourceText = rawVocabularyText ?? fullText
+        coordinator.pageStart = navigator.currentPageCharRange?.location ?? 0
+        coordinator.segmentMap = bilingualSegmentMap
+        coordinator.sourceOffset = vocabularySourceOffset
+    }
+
     func makeUIView(context: Context) -> NativePagedContainer {
         let container = NativePagedContainer()
+        updateVocabulary(context.coordinator)
+        container.textView.delegate = context.coordinator
         container.applyConfig(config)
         container.pagedLayout = layout
         applyContent(to: container.textView)
@@ -53,6 +68,7 @@ struct NativeTextPagedView: UIViewRepresentable {
     }
 
     func updateUIView(_ container: NativePagedContainer, context: Context) {
+        updateVocabulary(context.coordinator)
         container.applyConfig(config)
         container.pagedLayout = layout
 
@@ -89,8 +105,29 @@ struct NativeTextPagedView: UIViewRepresentable {
         }
     }
 
-    final class Coordinator {
+    @MainActor
+    final class Coordinator: NSObject, UITextViewDelegate {
         var lastPage: Int = -1
+        var vocabularyReaderContext: VocabularyReaderContext?
+        var sourceText = ""
+        var sourceOffset = 0
+        var pageStart = 0
+        var segmentMap = BilingualDisplaySegmentMap.identity(sourceLength: 0)
+
+        func textView(_ textView: UITextView, editMenuForTextIn range: NSRange,
+                      suggestedActions: [UIMenuElement]) -> UIMenu? {
+            guard range.location != NSNotFound, range.length > 0 else { return nil }
+            let displayRange = NSRange(location: pageStart + range.location, length: range.length)
+            let sourceRange = segmentMap.sourceLength == segmentMap.displayLength
+                ? displayRange : TXTBridgeShared.mapDisplayToSource(range: displayRange, map: segmentMap)
+            guard let sourceRange,
+                  let snapshot = TXTBridgeShared.vocabularySnapshot(context: vocabularyReaderContext,
+                    sourceText: sourceText, range: sourceRange, chunkOffset: sourceOffset) else { return nil }
+            let collect = UIAction(title: "加入生词本", image: UIImage(systemName: "text.badge.plus")) { _ in
+                NotificationCenter.default.post(name: Notification.Name("vreader.vocabulary.collect"), object: snapshot)
+            }
+            return UIMenu(children: suggestedActions + [collect])
+        }
     }
 }
 

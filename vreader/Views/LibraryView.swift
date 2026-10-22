@@ -54,6 +54,7 @@ struct LibraryView: View {
     @State var isShowingImporter = false
     @State private var isShowingSettings = false
     @State private var isShowingAIChat = false
+    @State private var isShowingVocabulary = false
     /// Bug #93: cache the general-chat VM across sheet open/close cycles
     /// so multi-turn history is preserved when the user dismisses and
     /// re-opens the chat. Created lazily on first sheet open and reused
@@ -110,6 +111,9 @@ struct LibraryView: View {
                 }
             }
             .navigationBarHidden(true)
+            .sheet(isPresented: $isShowingVocabulary) {
+                VocabularyListView()
+            }
             .navigationDestination(for: LibraryBookItem.self) { book in
                 ReaderContainerView(book: book)
             }
@@ -280,15 +284,24 @@ struct LibraryView: View {
     private var titleBlock: some View {
         let counts = containerModel.subtitleCounts(for: viewModel.books)
         return VStack(alignment: .leading, spacing: 0) {
-            Text("Library")
-                .font(LibraryCardTokens.serifTitleFont(
-                    size: LibraryCardTokens.titleFontSize
-                ))
-                .fontWeight(.semibold)
-                .foregroundStyle(LibraryCardTokens.ink)
-                .padding(.top, 12)
-                .padding(.bottom, 8)
-                .accessibilityAddTraits(.isHeader)
+            HStack {
+                Text("Library")
+                    .font(LibraryCardTokens.serifTitleFont(
+                        size: LibraryCardTokens.titleFontSize
+                    ))
+                    .fontWeight(.semibold)
+                    .foregroundStyle(LibraryCardTokens.ink)
+                    .accessibilityAddTraits(.isHeader)
+                Spacer()
+                LibraryPillButton(
+                    systemImage: "text.book.closed",
+                    accessibilityLabel: "生词本",
+                    accessibilityIdentifier: "vocabularyToolbarButton",
+                    action: { isShowingVocabulary = true }
+                )
+            }
+            .padding(.top, 12)
+            .padding(.bottom, 8)
 
             Text(subtitleText(for: counts))
                 .font(.system(size: LibraryCardTokens.subtitleFontSize))

@@ -56,6 +56,13 @@ import SwiftUI
 struct SelectionPopoverRequestPayload: Equatable, Sendable {
     let selection: TextSelectionInfo
     let requestToken: UUID?
+    let vocabularySnapshot: VocabularySelectionSnapshot?
+
+    init(selection: TextSelectionInfo, requestToken: UUID?, vocabularySnapshot: VocabularySelectionSnapshot? = nil) {
+        self.selection = selection
+        self.requestToken = requestToken
+        self.vocabularySnapshot = vocabularySnapshot
+    }
 }
 
 // MARK: - Request helper (wire format)
@@ -77,11 +84,13 @@ enum SelectionPopoverRequest {
     static func post(
         selection: TextSelectionInfo,
         on notificationCenter: NotificationCenter = .default,
-        requestToken: UUID? = nil
+        requestToken: UUID? = nil,
+        vocabularySnapshot: VocabularySelectionSnapshot? = nil
     ) {
         let payload = SelectionPopoverRequestPayload(
             selection: selection,
-            requestToken: requestToken
+            requestToken: requestToken,
+            vocabularySnapshot: vocabularySnapshot
         )
         notificationCenter.post(
             name: .readerSelectionPopoverRequested,
@@ -195,6 +204,7 @@ enum SelectionPopoverOutsideTapPolicy {
 /// drop its token-cache entry when a popover closes without an
 /// action (a tokenless TXT/MD attach simply omits the closure).
 private struct SelectionPopoverPresenterModifier: ViewModifier {
+    @Environment(\.vocabularyReaderContext) private var vocabularyReaderContext
     let theme: ReaderThemeV2
     /// Called when the sheet closes by any means (close button,
     /// drag-down, tap-outside, or after a dispatched action). WI-7c5b:
@@ -249,6 +259,8 @@ private struct SelectionPopoverPresenterModifier: ViewModifier {
                 guard let payload = SelectionPopoverRequest.payload(from: note) else {
                     return
                 }
+                if let snapshot = payload.vocabularySnapshot, let vocabularyReaderContext,
+                   snapshot.readerID != vocabularyReaderContext.readerID { return }
                 pending = payload
                 // Bug #351: stamp the present time so the outside-tap
                 // dismissal can grace-ignore the selection's own release.

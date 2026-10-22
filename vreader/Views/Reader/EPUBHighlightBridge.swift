@@ -26,6 +26,7 @@ struct EPUBSelectionMessage: Sendable {
     /// single-chapter mode (no `data-vreader-href` ancestor) so the coordinator
     /// falls back to `currentHref` — keeping the one-chapter path unchanged.
     let sectionHref: String?
+    var context: String? = nil
 }
 
 /// Bridge for EPUB text selection and highlight JS interop.
@@ -76,7 +77,8 @@ enum EPUBHighlightBridge {
             selectedText: selectedText,
             range: range,
             sourceRect: CGRect(x: rectX, y: rectY, width: rectWidth, height: rectHeight),
-            sectionHref: sectionHref
+            sectionHref: sectionHref,
+            context: dict["context"] as? String
         )
     }
 

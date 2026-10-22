@@ -29,6 +29,8 @@ import UIKit
 
 /// Container view for the PDF reader screen.
 struct PDFReaderContainerView: View {
+    @Environment(\.vocabularyReaderContext) var vocabularyReaderContext
+    @State private var pendingVocabularySnapshot: VocabularySelectionSnapshot?
     let fileURL: URL
     let viewModel: PDFReaderViewModel
     var modelContainer: ModelContainer?
@@ -297,6 +299,9 @@ struct PDFReaderContainerView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .readerTextSelected)) { notification in
             guard let event = notification.object as? ReaderSelectionEvent else { return }
+            if let readerID = notification.userInfo?["vocabularyReaderID"] as? UUID,
+               readerID != vocabularyReaderContext?.readerID { return }
+            pendingVocabularySnapshot = notification.userInfo?["vocabularySnapshot"] as? VocabularySelectionSnapshot
             pendingSelectionEvent = event
             showHighlightSheet = true
         }
@@ -323,6 +328,14 @@ struct PDFReaderContainerView: View {
             isPresented: $showHighlightSheet,
             titleVisibility: .visible
         ) {
+            if let snapshot = pendingVocabularySnapshot {
+                Button("加入生词本") {
+                    showHighlightSheet = false
+                    pendingVocabularySnapshot = nil
+                    NotificationCenter.default.post(name: Notification.Name("vreader.vocabulary.collect"), object: snapshot)
+                }
+                .accessibilityIdentifier("pdfSelectionVocabularyButton")
+            }
             Button("Highlight") {
                 guard let event = pendingSelectionEvent,
                       let container = modelContainer else { return }

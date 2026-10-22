@@ -200,6 +200,7 @@ struct FoliateSpikeView: View {
 }
 
 private struct FoliateSpikeWebView: UIViewRepresentable {
+    @Environment(\.vocabularyReaderContext) var vocabularyReaderContext
     let bookURL: URL
     /// Bug #141: threaded from FoliateSpikeView for DebugBridge registry
     /// binding. Set on the Coordinator so didFinish can register the
@@ -244,6 +245,7 @@ private struct FoliateSpikeWebView: UIViewRepresentable {
             onError: onError
         )
         coord.fingerprintKey = fingerprintKey
+        coord.vocabularyReaderContext = vocabularyReaderContext
         #if DEBUG
         coord.readerToken = readerToken
         #endif
@@ -373,6 +375,7 @@ private struct FoliateSpikeWebView: UIViewRepresentable {
     }
 
     func updateUIView(_ uiView: WKWebView, context: Context) {
+        context.coordinator.vocabularyReaderContext = vocabularyReaderContext
         // SwiftUI re-evaluates `body` when `settingsStore` changes
         // (@Observable) — `epubLayout` for reading mode (bug #189),
         // `typography` for font size (feature #70 WI-4). Both reach here.
@@ -491,6 +494,7 @@ extension FoliateSpikeView {
         /// `annotation-show` handler that posts the resolver request with
         /// a per-reader filter. Set by `makeCoordinator()` from the
         /// SwiftUI binding regardless of build configuration.
+        var vocabularyReaderContext: VocabularyReaderContext?
         var fingerprintKey: String?
         #if DEBUG
         /// Bug #142: per-reader instance token paired with fingerprintKey.
@@ -910,10 +914,15 @@ extension FoliateSpikeView {
                 // iOS's default WKWebView menu (Copy / Look Up / …) with
                 // no Highlight option.
                 if let parsed = FoliateMessageParser.parseSelection(body),
-                   let info = FoliateSelectionDispatcher.notificationUserInfo(
+                   var info = FoliateSelectionDispatcher.notificationUserInfo(
                     event: parsed,
                     fingerprintKey: self.fingerprintKey
                    ) {
+                    if let snapshot = vocabularyReaderContext?.snapshot(term: parsed.text,
+                        context: parsed.context ?? "", locatorData: parsed.cfi.data(using: .utf8)) {
+                        info["vocabularySnapshot"] = snapshot
+                    }
+                    if let vocabularyReaderContext { info["vocabularyReaderID"] = vocabularyReaderContext.readerID }
                     NotificationCenter.default.post(
                         name: .foliateSelectionDetected,
                         object: nil,

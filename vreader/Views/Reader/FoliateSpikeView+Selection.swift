@@ -41,6 +41,7 @@ import OSLog
 /// host stays small.
 private struct FoliateSelectionHandlerModifier: ViewModifier {
     let fingerprintKey: String?
+    @Environment(\.vocabularyReaderContext) private var vocabularyReaderContext
     @Environment(\.modelContext) private var modelContext
     @State private var pending: PendingSelection?
 
@@ -51,6 +52,7 @@ private struct FoliateSelectionHandlerModifier: ViewModifier {
         let cfi: String
         let text: String
         let fingerprintKey: String
+        let vocabularySnapshot: VocabularySelectionSnapshot?
     }
 
     func body(content: Content) -> some View {
@@ -65,10 +67,13 @@ private struct FoliateSelectionHandlerModifier: ViewModifier {
                       let cfi = info["cfi"] as? String,
                       let text = info["text"] as? String,
                       !text.isEmpty else { return }
+                if let readerID = info["vocabularyReaderID"] as? UUID,
+                   readerID != vocabularyReaderContext?.readerID { return }
                 pending = PendingSelection(
                     cfi: cfi,
                     text: text,
-                    fingerprintKey: key
+                    fingerprintKey: key,
+                    vocabularySnapshot: info["vocabularySnapshot"] as? VocabularySelectionSnapshot
                 )
             }
             .confirmationDialog(
@@ -77,6 +82,13 @@ private struct FoliateSelectionHandlerModifier: ViewModifier {
                 titleVisibility: .visible,
                 presenting: pending
             ) { selection in
+                if let snapshot = selection.vocabularySnapshot {
+                    Button("加入生词本") {
+                        pending = nil
+                        NotificationCenter.default.post(name: Notification.Name("vreader.vocabulary.collect"), object: snapshot)
+                    }
+                    .accessibilityIdentifier("foliateSelectionVocabularyButton")
+                }
                 Button("Highlight") {
                     handleHighlight(selection)
                 }

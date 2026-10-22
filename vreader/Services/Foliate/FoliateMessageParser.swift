@@ -90,7 +90,8 @@ enum FoliateMessageParser {
             cfi: cfi,
             text: text,
             rect: rect,
-            sectionIndex: index
+            sectionIndex: index,
+            context: dict["context"] as? String
         )
     }
 

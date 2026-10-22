@@ -7104,7 +7104,16 @@ ${doc.querySelector("parsererror").innerText}`);
         if (!text) return;
         const cfi = view.getCFI(index, range);
         const rect = range.getBoundingClientRect();
+        let contextNode = range.commonAncestorContainer;
+        if (contextNode.nodeType === 3) contextNode = contextNode.parentElement;
+        const startElement = range.startContainer.nodeType === 3 ? range.startContainer.parentElement : range.startContainer;
+        const paragraph = startElement?.closest("p,li,blockquote,h1,h2,h3,h4,h5,h6");
+        if (paragraph?.contains(range.endContainer)) contextNode = paragraph;
+        const copy = contextNode?.cloneNode(true);
+        copy?.querySelectorAll("[data-vreader-decoration],script,style").forEach((n3) => n3.remove());
+        const context = copy?.textContent?.trim() ?? "";
         post("selection", {
+          context,
           collapsed: false,
           text,
           cfi,

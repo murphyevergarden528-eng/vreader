@@ -53,6 +53,10 @@ extension TXTBridgeShared {
         range: NSRange,
         chunkOffset: Int = 0,
         requestToken: UUID? = nil,
+        vocabularyReaderContext: VocabularyReaderContext? = nil,
+        vocabularySourceText: String? = nil,
+        vocabularySourceOffset: Int = 0,
+        vocabularySourceIsPartial: Bool = false,
         bilingualSegmentMap: BilingualDisplaySegmentMap =
             BilingualDisplaySegmentMap.identity(sourceLength: 0)
     ) {
@@ -71,7 +75,9 @@ extension TXTBridgeShared {
             postInfo(
                 name, selectedText: nsText.substring(with: range),
                 sourceRange: range, chunkOffset: chunkOffset,
-                requestToken: requestToken
+                requestToken: requestToken,
+                vocabularyReaderContext: vocabularyReaderContext, vocabularySourceText: vocabularySourceText,
+                vocabularySourceOffset: vocabularySourceOffset, vocabularySourceIsPartial: vocabularySourceIsPartial
             )
             return
         }
@@ -93,7 +99,9 @@ extension TXTBridgeShared {
         )
         postInfo(
             name, selectedText: sourceText, sourceRange: sourceRange,
-            chunkOffset: chunkOffset, requestToken: requestToken
+            chunkOffset: chunkOffset, requestToken: requestToken,
+            vocabularyReaderContext: vocabularyReaderContext, vocabularySourceText: vocabularySourceText,
+                vocabularySourceOffset: vocabularySourceOffset, vocabularySourceIsPartial: vocabularySourceIsPartial
         )
     }
 
@@ -101,7 +109,7 @@ extension TXTBridgeShared {
     /// Returns `nil` only when there is nothing to anchor to (a selection
     /// inside a synthetic run with no preceding source segment).
     @MainActor
-    private static func mapDisplayToSource(
+    static func mapDisplayToSource(
         range: NSRange, map: BilingualDisplaySegmentMap
     ) -> NSRange? {
         guard let start = map.sourceOffset(forDisplayOffset: range.location) else {
@@ -141,7 +149,11 @@ extension TXTBridgeShared {
         selectedText: String,
         sourceRange: NSRange,
         chunkOffset: Int,
-        requestToken: UUID?
+        requestToken: UUID?,
+        vocabularyReaderContext: VocabularyReaderContext?,
+        vocabularySourceText: String?,
+        vocabularySourceOffset: Int,
+        vocabularySourceIsPartial: Bool
     ) {
         let info = TextSelectionInfo(
             selectedText: selectedText,
@@ -149,7 +161,9 @@ extension TXTBridgeShared {
             endUTF16: chunkOffset + sourceRange.location + sourceRange.length
         )
         if name == .readerSelectionPopoverRequested {
-            SelectionPopoverRequest.post(selection: info, requestToken: requestToken)
+            let snapshot = vocabularySnapshot(context: vocabularyReaderContext,
+                sourceText: vocabularySourceText, range: sourceRange, chunkOffset: chunkOffset + vocabularySourceOffset, sourceIsPartial: vocabularySourceIsPartial)
+            SelectionPopoverRequest.post(selection: info, requestToken: requestToken, vocabularySnapshot: snapshot)
         } else {
             NotificationCenter.default.post(name: name, object: info)
         }

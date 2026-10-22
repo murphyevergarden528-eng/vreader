@@ -27,6 +27,7 @@ import Foundation
 /// declared order; consumer views render them via
 /// `ForEach(SelectionPopoverActionRow.allCases)`.
 enum SelectionPopoverActionRow: String, CaseIterable, Equatable {
+    case saveVocabulary
     case note
     case translate
     case askAI
@@ -37,6 +38,7 @@ enum SelectionPopoverActionRow: String, CaseIterable, Equatable {
     /// highlight/note/translate/AI/TTS pipelines.
     var dispatchAction: SelectionPopoverAction {
         switch self {
+        case .saveVocabulary: return .saveVocabulary
         case .note:      return .note
         case .translate: return .translate
         case .askAI:     return .askAI
@@ -48,6 +50,7 @@ enum SelectionPopoverActionRow: String, CaseIterable, Equatable {
     /// these in 10.5pt typography under the icon.
     var label: String {
         switch self {
+        case .saveVocabulary: return "加入生词本"
         case .note:      return "Note"
         case .translate: return "Translate"
         case .askAI:     return "Ask AI"
@@ -61,6 +64,7 @@ enum SelectionPopoverActionRow: String, CaseIterable, Equatable {
     /// (audio / read).
     var systemImage: String {
         switch self {
+        case .saveVocabulary: return "text.badge.plus"
         case .note:      return "note.text"
         case .translate: return "character.book.closed"
         case .askAI:     return "sparkles"
@@ -79,6 +83,7 @@ enum SelectionPopoverActionRow: String, CaseIterable, Equatable {
     /// snapshots. Do not rename without updating every harness.
     var accessibilityIdentifier: String {
         switch self {
+        case .saveVocabulary: return "selectionPopoverVocabulary"
         case .note:      return "selectionPopoverNote"
         case .translate: return "selectionPopoverTranslate"
         case .askAI:     return "selectionPopoverAskAI"

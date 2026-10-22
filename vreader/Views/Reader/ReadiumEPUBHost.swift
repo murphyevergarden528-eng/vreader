@@ -36,6 +36,7 @@ import ReadiumNavigator
 /// Owns `ReadiumEPUBReaderViewModel` lifecycle via @State and hosts the Readium
 /// navigator. Selected by the dispatcher when `readiumEPUBEngine` is ON.
 struct ReadiumEPUBHost: View {
+    @Environment(\.vocabularyReaderContext) var vocabularyReaderContext
     /// Bug #345: drives session pause/resume so backgrounded time never
     /// counts toward the reading session.
     @Environment(\.scenePhase) var scenePhase

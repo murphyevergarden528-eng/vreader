@@ -24,6 +24,7 @@ import Foundation
 
 enum SelectionPopoverAction: Equatable, Sendable {
     case highlight(NamedHighlightColor)
+    case saveVocabulary
     case note
     case translate
     case askAI

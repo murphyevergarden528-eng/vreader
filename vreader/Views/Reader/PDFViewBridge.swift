@@ -23,6 +23,7 @@ import PDFKit
 
 /// SwiftUI wrapper for PDFKit's PDFView.
 struct PDFViewBridge: UIViewRepresentable {
+    @Environment(\.vocabularyReaderContext) var vocabularyReaderContext
     let url: URL
     var restorePage: Int?
     var password: String?
@@ -85,6 +86,7 @@ struct PDFViewBridge: UIViewRepresentable {
         // Bug #239 — seed the layout snapshot so the first tap honors the
         // current paged/scroll mode.
         context.coordinator.pagedLayout = layout
+        context.coordinator.vocabularyReaderContext = vocabularyReaderContext
 
         // Tap gesture for toolbar toggle (bug #32 — same pattern as TXT #21).
         // Feature #64 WI-7: a tap that hits a persisted highlight annotation
@@ -138,6 +140,7 @@ struct PDFViewBridge: UIViewRepresentable {
         // Bug #239 — keep the layout snapshot current so a user toggling
         // Paged ↔ Scroll mid-session re-routes the next tap immediately.
         context.coordinator.pagedLayout = layout
+        context.coordinator.vocabularyReaderContext = vocabularyReaderContext
 
         // Handle password retry: if attempt ID changed, try unlocking
         if let password,
@@ -337,6 +340,7 @@ struct PDFViewBridge: UIViewRepresentable {
 
     @MainActor
     final class Coordinator: NSObject, UIGestureRecognizerDelegate {
+        var vocabularyReaderContext: VocabularyReaderContext?
         var viewModel: PDFReaderViewModel?
         weak var pdfView: PDFView?
         /// Tracks the last restored page to avoid re-applying on every updateUIView.
@@ -443,9 +447,26 @@ struct PDFViewBridge: UIViewRepresentable {
                 sourceRect: screenRect
             )
 
+            let contexts = selection.pages.compactMap { selectedPage -> String? in
+                guard let text = selectedPage.string else { return nil }
+                let count = selection.numberOfTextRanges(on: selectedPage)
+                guard count > 0 else { return nil }
+                let ranges = (0..<count).map { selection.range(at: $0, on: selectedPage) }
+                    .filter { $0.location != NSNotFound }
+                guard let first = ranges.map(\.location).min(),
+                      let end = ranges.map({ NSMaxRange($0) }).max() else { return nil }
+                return VocabularySelectionContext.sentence(in: text,
+                    range: NSRange(location: first, length: end - first))
+            }
+            let snapshot = vocabularyReaderContext?.snapshot(term: selectedText,
+                context: contexts.joined(separator: "\n"), locatorData: try? JSONEncoder().encode(event.anchor))
+            var info: [AnyHashable: Any] = [:]
+            if let snapshot { info["vocabularySnapshot"] = snapshot }
+            if let vocabularyReaderContext { info["vocabularyReaderID"] = vocabularyReaderContext.readerID }
             NotificationCenter.default.post(
                 name: .readerTextSelected,
-                object: event
+                object: event,
+                userInfo: info
             )
         }
 

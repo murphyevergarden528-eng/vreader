@@ -33,6 +33,15 @@ jobs:
           git rev-parse HEAD > evidence/source-sha.txt
           xcodebuild -version | tee evidence/xcode.txt
           xcrun --sdk iphoneos --show-sdk-version >> evidence/xcode.txt
+      - name: Restore compiler outputs
+        id: compiler-cache
+        uses: actions/cache/restore@v4
+        continue-on-error: true
+        timeout-minutes: 5
+        with:
+          path: ~/Library/Developer/Xcode/DerivedData
+          key: vreader-xcode26.6-${{ runner.arch }}-${{ github.sha }}
+          restore-keys: vreader-xcode26.6-${{ runner.arch }}-
       - name: Select focused test sources
         env:
           TEST_TARGETS: ${{ inputs.test_targets }}
@@ -99,6 +108,14 @@ jobs:
           for LOG in "${TMPDIR}"/run-tests.*; do
             [ ! -f "$LOG" ] || cp "$LOG" evidence/
           done
+      - name: Save compiler outputs
+        if: ${{ !cancelled() && steps.compiler-cache.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@v4
+        continue-on-error: true
+        timeout-minutes: 5
+        with:
+          path: ~/Library/Developer/Xcode/DerivedData
+          key: vreader-xcode26.6-${{ runner.arch }}-${{ github.sha }}
       - name: Upload evidence
         if: always()
         uses: actions/upload-artifact@v4

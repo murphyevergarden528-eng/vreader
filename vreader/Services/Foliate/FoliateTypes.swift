@@ -28,6 +28,7 @@ struct FoliateSelectionEvent: Sendable, Equatable {
     let text: String
     let rect: CGRect
     let sectionIndex: Int
+    var context: String? = nil
 }
 
 // MARK: - Book Info

@@ -9,7 +9,7 @@ VReader is an iOS e-book reader built with SwiftUI + SwiftData. It supports TXT,
 ```
 ┌──────────────────────────────────────────────────────┐
 │                    VReaderApp                         │
-│  SwiftData SchemaV10 · PersistenceActor · BookImporter│
+│  SwiftData SchemaV11 · PersistenceActor · BookImporter│
 └─────────────────────┬────────────────────────────────┘
                       │
           ┌───────────┴───────────┐
@@ -34,7 +34,7 @@ VReader is an iOS e-book reader built with SwiftUI + SwiftData. It supports TXT,
 
 ### 1. App Layer (`vreader/App/`)
 
-- `VReaderApp.swift` — SwiftData `ModelContainer` init (SchemaV10), migration plan (V1→…→V9→V10, all lightweight; V9→V10 adds the additive `Book.sourceCanonicalKey: String?` for feature #108's converted-Kindle cross-platform identity). Also runs the feature #109 one-shot `LocatorKeyBackfillMigration` synchronously at launch (flag-gated; recomputes derived locator keys under NFC canonicalization + repairs non-finite locators — a launch backfill, NOT a migration stage, since the transform changes no entity shape). Plus test seeding, error handling. Injects the live `PersistenceActor` into the SwiftUI environment via `\.persistenceActor` so settings sub-screens can construct backup providers without rewriting every parent's signature. Adopts `@UIApplicationDelegateAdaptor(VReaderAppDelegate.self)` for background-URLSession completion-handler delivery (feature #47).
+- `VReaderApp.swift` — SwiftData `ModelContainer` init (SchemaV11), migration plan (V1→…→V9→V10→V11, all lightweight; V9→V10 adds the additive `Book.sourceCanonicalKey: String?` for feature #108's converted-Kindle cross-platform identity). Also runs the feature #109 one-shot `LocatorKeyBackfillMigration` synchronously at launch (flag-gated; recomputes derived locator keys under NFC canonicalization + repairs non-finite locators — a launch backfill, NOT a migration stage, since the transform changes no entity shape). Plus test seeding, error handling. Injects the live `PersistenceActor` into the SwiftUI environment via `\.persistenceActor` so settings sub-screens can construct backup providers without rewriting every parent's signature. Adopts `@UIApplicationDelegateAdaptor(VReaderAppDelegate.self)` for background-URLSession completion-handler delivery (feature #47).
 - `VReaderAppDelegate.swift` — `UIApplicationDelegate` adapter that captures `application(_:handleEventsForBackgroundURLSession:completionHandler:)` into a MainActor-isolated static dictionary keyed by URLSession identifier. The lazy-download coordinator retrieves and invokes the handler from `LazyDownloadDelegate.urlSessionDidFinishEvents` so iOS releases the app's background-launch grace period.
 
 ### 2. Library Layer (`vreader/Views/LibraryView.swift`, `vreader/ViewModels/LibraryViewModel.swift`)
@@ -872,3 +872,13 @@ under `repeatOnLifecycle(RESUMED)`. Verified on the emulator by
   `scripts/run-android-verify.sh` (rule 49/52/53 watchdogs).
 - Version lives in `android/version.properties` (`versionName`/`versionCode`);
   releases tag `android/vX.Y.Z` (iOS keeps plain `vX.Y.Z` — rule 40).
+
+## Personal fork: vocabulary and spaced review
+
+SchemaV11 adds VocabularyEntry, VocabularyOccurrence and VocabularyReviewEvent. Their links use entry UUIDs; no relationship to Book exists, so deleting a source book retains vocabulary. PersistenceActor owns all vocabulary writes and returns Sendable VocabularyRecord/VocabularySource snapshots. Each operation uses a non-autosaving ModelContext; review checks operation UUID and revision, then saves the updated FSRS card and review event together without suspension.
+
+VocabularyScheduler pins swift-fsrs at 4fbaf20184d62f82a9f44f343337c61a2c5483e9 with explicit FSRS-6 weights, retention .9 and fuzz disabled. VocabularyBackup includes algorithm configuration, complete card data and replayable history. Import validates the entire document before one save; UUID/normalized-term duplicates skip whole cards and never overwrite local progress.
+
+The Library title row opens VocabularyListView. ReaderContainerView injects a per-window VocabularyReaderContext using its existing readerToken. Reader bridges freeze actual selection text/context/location into VocabularySelectionSnapshot before clearing selection caches. The reader-scoped ReaderVocabularyPresenter filters both window and book identity before opening VocabularyEditorView. PDF and Foliate retain their native independent selection dialogs.
+
+VocabularyEditorViewModel keeps an editable draft independent of network/persistence; request identity and edit revision reject cancelled/stale AI responses. Explicit explanations reuse AIService provider resolution, readiness, consent and key gates. VocabularyReviewView derives due cards through VocabularyStudyQueue and submits one rating per operation. JSON import/export uses the system file picker and contains no credentials or book bytes.
