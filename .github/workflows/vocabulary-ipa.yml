@@ -13,7 +13,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: vocabulary-${{ github.ref }}
+  group: vocabulary-${{ github.ref }}-${{ inputs.test_targets }}
   cancel-in-progress: false
 jobs:
   validate:
@@ -32,19 +32,28 @@ jobs:
           brew list xcodegen >/dev/null 2>&1 || brew install xcodegen
           xcodegen generate
       - name: Boot test simulator
+        timeout-minutes: 8
         run: |
           DEVICE=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(x["udid"] for xs in d["devices"].values() for x in xs if "iPhone" in x["name"]))')
           xcrun simctl boot "$DEVICE" || true
           xcrun simctl bootstatus "$DEVICE" -b
           echo "TEST_UDID=$DEVICE" >> "$GITHUB_ENV"
       - name: Run requested tests with project watchdog
+        timeout-minutes: 55
         env:
           TEST_TARGETS: ${{ inputs.test_targets }}
           TIMEOUT_SECS: '3000'
         run: |
           set -euo pipefail
           read -r -a TARGETS <<< "$TEST_TARGETS"
-          bash scripts/run-tests.sh "${TARGETS[@]}" | tee evidence/tests.log
+          RESULT=0
+          for TARGET in "${TARGETS[@]}"; do
+            LABEL=${TARGET//\//_}
+            if ! bash scripts/run-tests.sh "$TARGET" | tee "evidence/tests-${LABEL}.log"; then
+              RESULT=1
+            fi
+          done
+          exit "$RESULT"
       - name: Build unsigned device app
         if: ${{ inputs.package_ipa }}
         run: |
@@ -64,6 +73,13 @@ jobs:
           cd package && /usr/bin/zip -qry ../VReader-unsigned.ipa Payload && cd ..
           unzip -t VReader-unsigned.ipa > evidence/ipa-check.txt
           shasum -a 256 VReader-unsigned.ipa > VReader-unsigned.ipa.sha256
+      - name: Preserve full test diagnostics
+        if: always()
+        run: |
+          mkdir -p evidence
+          for LOG in "${TMPDIR}"/run-tests.*; do
+            [ ! -f "$LOG" ] || cp "$LOG" evidence/
+          done
       - name: Upload evidence
         if: always()
         uses: actions/upload-artifact@v4
