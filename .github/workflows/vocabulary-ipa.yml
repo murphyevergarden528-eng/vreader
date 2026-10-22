@@ -1,0 +1,83 @@
+name: Vocabulary tests and unsigned iPad IPA
+on:
+  workflow_dispatch:
+    inputs:
+      test_targets:
+        description: Space separated XCTest/Swift Testing targets
+        required: true
+        default: vreaderTests/SchemaV10SourceKeyMigrationTests
+      package_ipa:
+        description: Build and upload unsigned physical-device IPA
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: vocabulary-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  validate:
+    runs-on: macos-15
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+      - name: Record source and toolchain
+        run: |
+          mkdir -p evidence
+          git rev-parse HEAD > evidence/source-sha.txt
+          xcodebuild -version | tee evidence/xcode.txt
+          xcrun --sdk iphoneos --show-sdk-version >> evidence/xcode.txt
+      - name: Generate Xcode project
+        run: |
+          brew list xcodegen >/dev/null 2>&1 || brew install xcodegen
+          xcodegen generate
+      - name: Boot test simulator
+        run: |
+          DEVICE=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(x["udid"] for xs in d["devices"].values() for x in xs if "iPhone" in x["name"]))')
+          xcrun simctl boot "$DEVICE" || true
+          xcrun simctl bootstatus "$DEVICE" -b
+          echo "TEST_UDID=$DEVICE" >> "$GITHUB_ENV"
+      - name: Run requested tests with project watchdog
+        env:
+          TEST_TARGETS: ${{ inputs.test_targets }}
+          TIMEOUT_SECS: '3000'
+        run: |
+          set -euo pipefail
+          read -r -a TARGETS <<< "$TEST_TARGETS"
+          bash scripts/run-tests.sh "${TARGETS[@]}" | tee evidence/tests.log
+      - name: Build unsigned device app
+        if: ${{ inputs.package_ipa }}
+        run: |
+          set -euo pipefail
+          xcodebuild -project vreader.xcodeproj -scheme vreader \
+            -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' \
+            -derivedDataPath build CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
+            build | tee evidence/device-build.log
+          APP=build/Build/Products/Release-iphoneos/vreader.app
+          test -f "$APP/Info.plist"
+          EXECUTABLE=$(/usr/libexec/PlistBuddy -c 'Print CFBundleExecutable' "$APP/Info.plist")
+          lipo -verify_arch arm64 "$APP/$EXECUTABLE"
+          plutil -lint "$APP/Info.plist"
+          cp "$APP/Info.plist" evidence/app-info.plist
+          mkdir -p package/Payload
+          cp -R "$APP" package/Payload/
+          cd package && /usr/bin/zip -qry ../VReader-unsigned.ipa Payload && cd ..
+          unzip -t VReader-unsigned.ipa > evidence/ipa-check.txt
+          shasum -a 256 VReader-unsigned.ipa > VReader-unsigned.ipa.sha256
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: evidence-${{ github.run_id }}
+          path: evidence/
+          retention-days: 7
+      - name: Upload unsigned IPA
+        if: ${{ success() && inputs.package_ipa }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: VReader-unsigned-${{ github.sha }}
+          path: |
+            VReader-unsigned.ipa
+            VReader-unsigned.ipa.sha256
+          if-no-files-found: error
+          retention-days: 7
